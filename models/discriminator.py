@@ -3,6 +3,8 @@ import torch.nn as nn
 
 class Discriminator(nn.Module):
     def __init__(self, input_dim = 3, layer_dims = [64, 128, 256, 512]):
+        """ The discriminator model used in CycleGAN. The default values correspond 
+            to the original parameters presented in the paper."""
         super().__init__()
         layers = []
         for i, dim in enumerate(layer_dims):
@@ -34,14 +36,15 @@ class Discriminator(nn.Module):
         return nn.Sequential(*layer)
     
     def forward(self, x):
-        return self.model(x) # To revisit, unsure if I need to add torch.sigmoid here (@Rohan, do you know?)
+        return self.model(x) # To revisit, unsure if I need to add torch.sigmoid here (@Rohan, do you know?) 
+                             # Seems to depend on the loss function used. No mention in article...
     
 if __name__ == "__main__":
     print("Generating Discriminator Model")
     D = Discriminator()
     print("Discriminator Model Generated")
-    x = torch.randn((1, 3, 256, 256))
+    x = torch.randn((5, 3, 256, 256))
     print("Running Discriminator on random input")
     y = D(x)
-    print(y.shape)  # Expected shape: (1, 1, 30, 30)
-        
+    print(y.shape)  # Expected shape: (5, 1, 30, 30)
+    
