@@ -16,7 +16,7 @@ class Generator(nn.Module):
 
         u128 = self.build_uk(in_dim=256, out_dim=128)
         u64 = self.build_uk(in_dim=128, out_dim=64)
-        c7s1_3 = self.build_c7s1_k(in_dim=64, out_dim=3) # In github the stride is 0, why???
+        c7s1_3 = self.build_c7s1_k(in_dim=64, out_dim=3) # In github the padding is 0, why???
         layers_after_R = [u128, u64, c7s1_3]
         self.model_after_R = nn.Sequential(*layers_after_R)
         
