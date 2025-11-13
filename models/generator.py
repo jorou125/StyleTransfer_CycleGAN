@@ -2,29 +2,22 @@ import torch
 import torch.nn as nn
 
 class Generator(nn.Module):
-    def __init__(self, img_resolution=256):
+    def __init__(self, num_R_blocks=6):
         super().__init__()
+        layers = []
         c7s1_64 = self.build_c7s1_k(in_dim=3, out_dim=64)
         d128 = self.build_dk(in_dim=64, out_dim=128)
         d256 = self.build_dk(in_dim=128, out_dim=256)
-        layers_before_R = [c7s1_64, d128, d256]
-        self.model_before_R = nn.Sequential(*layers_before_R)
-
-        num_R_blocks = 6 if img_resolution <= 128 else 9
+        layers += [c7s1_64, d128, d256]
         R_blocks = self.build_Rk(dim=256, n_blocks=num_R_blocks)
-        self.R_blocks = R_blocks
+        layers += R_blocks
 
         u128 = self.build_uk(in_dim=256, out_dim=128)
         u64 = self.build_uk(in_dim=128, out_dim=64)
         c7s1_3 = self.build_c7s1_k(in_dim=64, out_dim=3) # In github the padding is 0, why???
-        layers_after_R = [u128, u64, c7s1_3]
-        self.model_after_R = nn.Sequential(*layers_after_R)
-        
-        self.model = nn.Sequential(
-            self.model_before_R,
-            self.R_blocks,
-            self.model_after_R
-        )
+        layers += [u128, u64, c7s1_3]
+        self.model = nn.Sequential(*layers)
+
 
     def forward(self, x):
         x = self.model(x) 
@@ -58,7 +51,7 @@ class Generator(nn.Module):
         R_blocks = []
         for _ in range(n_blocks):
             R_blocks.append(ResidualBlock(dim))
-        return nn.Sequential(*R_blocks)
+        return R_blocks
     
 class ResidualBlock(nn.Module):
     def __init__(self, dim):
@@ -74,3 +67,12 @@ class ResidualBlock(nn.Module):
 
     def forward(self, x):
         return x + self.Rk(x)
+    
+if __name__ == "__main__":
+    print("Initializing generator")
+    G = Generator(num_R_blocks=6)
+    print("Testing generator with random input")
+    x = torch.randn((1, 3, 256, 256))
+    out = G(x)
+    print(out.shape)  # Expected output shape: (1, 3, 256, 256)
+    # resulting shape does not have the right shape, currently (1, 3, 253, 253), probably linked to padding?
