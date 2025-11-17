@@ -13,7 +13,7 @@ class Discriminator(nn.Module):
                     in_dim=input_dim, out_dim=dim, 
                     kernel_size=4, stride=2, padding=1, 
                     InstanceNorm=False))
-            elif dim == layer_dims[-1]: # Last layer has a stride of 1!
+            elif dim == layer_dims[-1]: # Last layer has a stride of 1! According to github, not mentioned in article.
                 layers.append(self.build_layer(
                     in_dim=layer_dims[i-1], out_dim=dim, 
                     kernel_size=4, stride=1, padding=1,
