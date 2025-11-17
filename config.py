@@ -17,8 +17,13 @@ CHECKPOINT_CRITIC_A = "critich.pth.tar"
 CHECKPOINT_CRITIC_B = "criticz.pth.tar"
 IMAGE_SIZE = 256
 
-transformes = transforms.Compose([
+input_transforms = transforms.Compose([
+    transforms.ToTensor(),
     transforms.Resize((IMAGE_SIZE, IMAGE_SIZE)),
-    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
-    transforms.ToTensor()
+    transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+])
+
+output_transforms = transforms.Compose([
+    transforms.Normalize((-1, -1, -1), (2, 2, 2)),
+    transforms.ToPILImage()
 ])
