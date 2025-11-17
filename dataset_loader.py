@@ -13,8 +13,6 @@ class ImageDataset(Dataset):
         self.root_A = root_A
         self.root_B = root_B
         self.transforms = transforms
-        if self.transforms is None:
-            self.transforms = torchvision.transforms.Identity()
         self.direction = direction
 
         self.images_A = os.listdir(root_A)
@@ -30,8 +28,9 @@ class ImageDataset(Dataset):
         path_B = os.path.join(self.root_B, image_B)
         img_A = Image.open(path_A).convert("RGB")
         img_B = Image.open(path_B).convert("RGB")
-        img_A = self.transforms(img_A)
-        img_B = self.transforms(img_B)
+        if self.transforms is not None:
+            img_A = self.transforms(img_A)
+            img_B = self.transforms(img_B)
         return {"A": img_A, "B": img_B}
     
 if __name__ == "__main__":
