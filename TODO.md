@@ -8,11 +8,11 @@ Legend: [ ] = TODO, [-] = Work in progress, and [x] = Done
 - [ ] Build data download script @Jo
 - [x] Build data preprocessing script @Jo
 
-# Pour le 26 Novembre
+# Pour le 23 Novembre
 - [ ] Build utils and configs @Rohan
 - [ ] Build train script @Rohan
 
-# Pour le 3 Décembre
+# Pour le 26 Novembre
 - [ ] Trained models @Rohan & @Jo
 - [ ] Build evaluation script @Rohan
 - [ ] Résultats @Rohan
