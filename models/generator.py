@@ -14,14 +14,14 @@ class Generator(nn.Module):
 
         u128 = self.build_uk(in_dim=256, out_dim=128)
         u64 = self.build_uk(in_dim=128, out_dim=64)
-        c7s1_3 = self.build_c7s1_k(in_dim=64, out_dim=3) # In github there is no InstanceNorm or ReLU after this layer, why???
+        c7s1_3 = self.build_c7s1_k(in_dim=64, out_dim=3)
         layers += [u128, u64, c7s1_3]
         self.model = nn.Sequential(*layers)
 
 
     def forward(self, x):
         x = self.model(x) 
-        return x # Supposedly, there is a torch.tanh here according to implementation, but not mentioned in article...
+        return torch.tanh(x)
 
     def build_c7s1_k(self, in_dim, out_dim):
         c7s1_k = nn.Sequential(
@@ -77,5 +77,4 @@ if __name__ == "__main__":
     print("Testing generator with random input")
     x = torch.randn((1, 3, 256, 256))
     out = G(x)
-    print(out.shape)  # Expected output shape: (1, 3, 256, 256)
-    # resulting shape does not have the right shape, currently (1, 3, 253, 253), unless out_padding=1 in upsampling?
+    print(out.shape)
