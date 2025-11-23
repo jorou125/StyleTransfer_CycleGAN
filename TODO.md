@@ -2,9 +2,9 @@
 Legend: [ ] = TODO, [-] = Work in progress, and [x] = Done
 
 # Pour le 23 Novembre
-- [-] Build discriminatror network class @Jo
-- [-] Build generator network class @Jo
-- [-] Build dataloader class @Jo
+- [x] Build discriminatror network class @Jo
+- [x] Build generator network class @Jo
+- [x] Build dataloader class @Jo
 - [ ] Build data download script @Jo
 - [x] Build data preprocessing script @Jo
 

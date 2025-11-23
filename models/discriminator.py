@@ -13,7 +13,7 @@ class Discriminator(nn.Module):
                     in_dim=input_dim, out_dim=dim, 
                     kernel_size=4, stride=2, padding=1, 
                     InstanceNorm=False))
-            elif dim == layer_dims[-1]: # Last layer has a stride of 1! According to github, not mentioned in article.
+            elif dim == layer_dims[-1]:
                 layers.append(self.build_layer(
                     in_dim=layer_dims[i-1], out_dim=dim, 
                     kernel_size=4, stride=1, padding=1,
@@ -24,7 +24,7 @@ class Discriminator(nn.Module):
                     kernel_size=4, stride=2, padding=1,
                     InstanceNorm=True))
         layers.append(nn.Conv2d(in_channels=layer_dims[-1], out_channels=1, 
-                                kernel_size=4, stride=1, padding=1)) # « Produce 1-dimensional output »
+                                kernel_size=4, stride=1, padding=1))
         self.model = nn.Sequential(*layers)
 
 
@@ -36,8 +36,7 @@ class Discriminator(nn.Module):
         return nn.Sequential(*layer)
     
     def forward(self, x):
-        return self.model(x) # To revisit, unsure if I need to add torch.sigmoid here (@Rohan, do you know?) 
-                             # Seems to depend on the loss function used. No mention in article...
+        return torch.sigmoid(self.model(x))
     
 if __name__ == "__main__":
     print("Generating Discriminator Model")

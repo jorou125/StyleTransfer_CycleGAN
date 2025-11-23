@@ -1,8 +1,6 @@
 import torch
 from PIL import Image
 import os
-
-import torchvision
 import config
 import numpy as np
 from torch.utils.data import Dataset
@@ -23,7 +21,7 @@ class ImageDataset(Dataset):
     
     def __getitem__(self, index):
         image_A = self.images_A[index % len(self.images_A)]
-        image_B = self.images_B[index % len(self.images_B)] # Modulo to avoid index error if datasets have different sizes, but may cause some images to be seen more than once per epoch.
+        image_B = self.images_B[index % len(self.images_B)]
         path_A = os.path.join(self.root_A, image_A)
         path_B = os.path.join(self.root_B, image_B)
         img_A = Image.open(path_A).convert("RGB")
