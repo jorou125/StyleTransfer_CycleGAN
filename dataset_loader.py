@@ -3,7 +3,7 @@ from PIL import Image
 import os
 import config
 import numpy as np
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
 
 
 class ImageDataset(Dataset):
@@ -40,9 +40,20 @@ if __name__ == "__main__":
     print(f"Dataset length: {len(dataset)}")
     sample = dataset[0]
     print(f"Sample keys: {sample.keys()}")
-    print(f"Image A shape: {sample['A'].shape}")
-    print(f"Image B shape: {sample['B'].shape}")
+    # print(f"Image A shape: {sample['A'].shape}")
+    # print(f"Image B shape: {sample['B'].shape}")
     # img_A = config.output_transforms(sample['A'])
     # img_B = config.output_transforms(sample['B'])
     # img_A.show(title="Image A")
     # img_B.show(title="Image B")
+
+
+def get_loader_from_dataset(dataset):
+    return DataLoader(
+        dataset,
+        batch_size=config.BATCH_SIZE,
+        shuffle=True,
+        num_workers=config.NUM_WORKERS,
+        # drop_last=True
+        # pin_memory=True
+    )
