@@ -9,10 +9,11 @@ Legend: [ ] = TODO, [-] = Work in progress, and [x] = Done
 - [x] Build data preprocessing script @Jo
 
 # Pour le 23 Novembre
-- [ ] Build utils and configs @Rohan
-- [ ] Build train script @Rohan
+- [x] Build utils and configs @Ro
+- [x] Build train script @Ro
 
 # Pour le 26 Novembre
-- [ ] Trained models @Rohan & @Jo
-- [ ] Build evaluation script @Rohan
-- [ ] Résultats @Rohan
+- [x] Tweak train script and configs, if needed, to get best results @Ro
+- [ ] Trained models @Ro & @Jo
+- [ ] Build evaluation script @Ro
+- [ ] Résultats @Ro
