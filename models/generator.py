@@ -73,7 +73,7 @@ class Generator(nn.Module):
 
 
 if __name__ == "__main__":
-    path_pretraind = "checkpoints\\style_vangogh_pretrained\\latest_net_G.pth"
+    path_pretraind = "checkpoints\\horse2zebra_pretrained\\latest_net_G.pth"
     print("Loading pre-trained generator from:", path_pretraind)
     checkpoint = torch.load(path_pretraind, map_location="cpu")
     gen = Generator(input_nc=3, output_nc=3, ngf=64, norm_layer=functools.partial(nn.InstanceNorm2d, affine=False, track_running_stats=True), n_blocks=9)
@@ -82,7 +82,7 @@ if __name__ == "__main__":
     gen.eval()
     import os
     from random import randint as random
-    image_dir = "data/vangogh2photo/testB/"
+    image_dir = "data\\horse2zebra\\horse2zebra\\testA"
     random_image = os.listdir(image_dir)[random(0, len(os.listdir(image_dir)) - 1)]
     from PIL import Image
     from torchvision import transforms
