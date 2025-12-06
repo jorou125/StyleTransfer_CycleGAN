@@ -2,7 +2,7 @@ import torch
 import torchvision.transforms as transforms
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-TRAIN_DIR = "data/vangogh2photo/vangogh2photo/"
+TRAIN_DIR = "data/vangogh2photo/"
 RUNS_DIR = "runs"
 BATCH_SIZE = 1
 LEARNING_RATE = 2e-4

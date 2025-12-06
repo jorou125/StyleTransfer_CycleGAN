@@ -1,42 +1,38 @@
 import torch
 import torch.nn as nn
+import functools
 
+    
 class Discriminator(nn.Module):
-    def __init__(self, input_dim = 3, layer_dims = [64, 128, 256, 512]):
-        """ The discriminator model used in CycleGAN. The default values correspond 
-            to the original parameters presented in the paper."""
+    def __init__(self, input_nc=3, ndf=64, n_layers=3, norm_layer=nn.BatchNorm2d):
         super().__init__()
-        layers = []
-        for i, dim in enumerate(layer_dims):
-            if dim == layer_dims[0]:
-                layers.append(self.build_layer(
-                    in_dim=input_dim, out_dim=dim, 
-                    kernel_size=4, stride=2, padding=1, 
-                    InstanceNorm=False))
-            elif dim == layer_dims[-1]:
-                layers.append(self.build_layer(
-                    in_dim=layer_dims[i-1], out_dim=dim, 
-                    kernel_size=4, stride=1, padding=1,
-                    InstanceNorm=True))
-            else:
-                layers.append(self.build_layer(
-                    in_dim=layer_dims[i-1], out_dim=dim, 
-                    kernel_size=4, stride=2, padding=1,
-                    InstanceNorm=True))
-        layers.append(nn.Conv2d(in_channels=layer_dims[-1], out_channels=1, 
-                                kernel_size=4, stride=1, padding=1))
+        if type(norm_layer) == functools.partial:
+            use_bias = norm_layer.func == nn.InstanceNorm2d
+        else:
+            use_bias = norm_layer == nn.InstanceNorm2d
+        layers = [
+            nn.Conv2d(input_nc, ndf, kernel_size=4, stride=2, padding=1),
+            nn.LeakyReLU(0.2, True)
+        ]
+        nf = ndf
+        for _ in range(1, n_layers):
+            nf_prev = nf
+            nf = min(nf * 2, 512)
+            layers += [
+                nn.Conv2d(nf_prev, nf, kernel_size=4, stride=2, padding=1, bias=use_bias),
+                norm_layer(nf),
+                nn.LeakyReLU(0.2, True)
+            ]
+        layers += [
+            nn.Conv2d(nf, nf, kernel_size=4, stride=1, padding=1, bias=use_bias),
+            norm_layer(nf),
+            nn.LeakyReLU(0.2, True),
+            nn.Conv2d(nf, 1, kernel_size=4, stride=1, padding=1)
+        ]
         self.model = nn.Sequential(*layers)
 
-
-    def build_layer(self, in_dim, out_dim, kernel_size, stride, padding=1, InstanceNorm=True):
-        layer = [nn.Conv2d(in_dim, out_dim, kernel_size, stride, padding)]
-        if InstanceNorm:
-            layer.append(nn.InstanceNorm2d(out_dim))
-        layer.append(nn.LeakyReLU(0.2, inplace=True))
-        return nn.Sequential(*layer)
-    
     def forward(self, x):
-        return torch.sigmoid(self.model(x))
+        return self.model(x)
     
 if __name__ == "__main__":
     print("Generating Discriminator Model")
