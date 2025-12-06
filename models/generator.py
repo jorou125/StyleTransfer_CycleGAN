@@ -21,7 +21,7 @@ class ResnetBlock(nn.Module):
         return x + self.conv_block(x)
 
 class Generator(nn.Module):
-    def __init__(self, input_nc, output_nc, ngf=64, norm_layer=functools.partial(nn.InstanceNorm2d, affine=False, track_running_stats=True), n_blocks=9):
+    def __init__(self, input_nc=3, output_nc=3, ngf=64, norm_layer=functools.partial(nn.InstanceNorm2d, affine=False, track_running_stats=True), n_blocks=9):
         super().__init__()
         if type(norm_layer) == functools.partial:
             use_bias = norm_layer.func == nn.InstanceNorm2d
@@ -76,7 +76,7 @@ if __name__ == "__main__":
     path_pretraind = "checkpoints\\horse2zebra_pretrained\\latest_net_G.pth"
     print("Loading pre-trained generator from:", path_pretraind)
     checkpoint = torch.load(path_pretraind, map_location="cpu")
-    gen = Generator(input_nc=3, output_nc=3, ngf=64, norm_layer=functools.partial(nn.InstanceNorm2d, affine=False, track_running_stats=True), n_blocks=9)
+    gen = Generator()
     gen.load_state_dict(checkpoint, strict=True)
     print("Loaded state_dict (strict=True).")
     gen.eval()
