@@ -331,7 +331,7 @@ def train():
         scheduler_D_A.step()
         scheduler_D_B.step()
 
-        if epoch_index % config.SAMPLE_EVERY == 0:
+        if epoch_index % config.SAMPLE_EVERY == 0 or epoch_index == config.NUM_EPOCHS - 1:
             batch = next(iter(svars["loader"]))
             real_A = batch["A"].to(config.DEVICE)
             real_B = batch["B"].to(config.DEVICE)
@@ -343,7 +343,7 @@ def train():
             save_image((grid * 0.5) + 0.5, os.path.join(sample_dir, f"epoch_{epoch_index}.png"))
 
         # Saving checkpoints
-        if config.SAVE_MODEL and (epoch_index % config.CKPT_EVERY == 0):
+        if config.SAVE_MODEL and (epoch_index % config.CKPT_EVERY == 0) or epoch_index == config.NUM_EPOCHS - 1:
             save_checkpoint_all(ckpt_dir, epoch_index, G_AB, G_BA, D_A, D_B, optim_G, optim_D_A, optim_D_B, scheduler_G, scheduler_D_A, scheduler_D_B)
 
 if __name__ == "__main__":
