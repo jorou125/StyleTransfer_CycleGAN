@@ -17,8 +17,8 @@ from enum import Enum
 import config
 from models import generator as custom_generator
 from models import discriminator as custom_discriminator
-import implementations.rp_implementation.cyclegan as rp_cyclegan
-import implementations.rp_implementation.train as rp_train
+# import implementations.rp_implementation.cyclegan as rp_cyclegan
+# import implementations.rp_implementation.train as rp_train
 
 def get_models(implementation: config.Implementation):
     if implementation == config.Implementation.PAPER:
@@ -31,26 +31,27 @@ def get_models(implementation: config.Implementation):
 
         return gen_X, gen_Y, dis_X, dis_Y
     elif implementation == config.Implementation.RP:
-        Gen_AB = rp_cyclegan.GeneratorResNet(rp_train.input_shape, rp_train.hp.num_residual_blocks)
-        Gen_BA = rp_cyclegan.GeneratorResNet(rp_train.input_shape, rp_train.hp.num_residual_blocks)
+        pass
+        # Gen_AB = rp_cyclegan.GeneratorResNet(rp_train.input_shape, rp_train.hp.num_residual_blocks)
+        # Gen_BA = rp_cyclegan.GeneratorResNet(rp_train.input_shape, rp_train.hp.num_residual_blocks)
 
-        Disc_A = rp_cyclegan.Discriminator(rp_train.input_shape)
-        Disc_B = rp_cyclegan.Discriminator(rp_train.input_shape)
+        # Disc_A = rp_cyclegan.Discriminator(rp_train.input_shape)
+        # Disc_B = rp_cyclegan.Discriminator(rp_train.input_shape)
 
-        if rp_train.cuda:
-            Gen_AB = Gen_AB.cuda()
-            Gen_BA = Gen_BA.cuda()
-            Disc_A = Disc_A.cuda()
-            Disc_B = Disc_B.cuda()
+        # if rp_train.cuda:
+        #     Gen_AB = Gen_AB.cuda()
+        #     Gen_BA = Gen_BA.cuda()
+        #     Disc_A = Disc_A.cuda()
+        #     Disc_B = Disc_B.cuda()
 
-        ##############################################
-        # Initialize weights
-        ##############################################
+        # ##############################################
+        # # Initialize weights
+        # ##############################################
 
-        Gen_AB.apply(rp_train.initialize_conv_weights_normal)
-        Gen_BA.apply(rp_train.initialize_conv_weights_normal)
+        # Gen_AB.apply(rp_train.initialize_conv_weights_normal)
+        # Gen_BA.apply(rp_train.initialize_conv_weights_normal)
 
-        Disc_A.apply(rp_train.initialize_conv_weights_normal)
-        Disc_B.apply(rp_train.initialize_conv_weights_normal)
+        # Disc_A.apply(rp_train.initialize_conv_weights_normal)
+        # Disc_B.apply(rp_train.initialize_conv_weights_normal)
 
-        return Gen_AB, Gen_BA, Disc_A, Disc_B
+        # return Gen_AB, Gen_BA, Disc_A, Disc_B
