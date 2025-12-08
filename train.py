@@ -12,6 +12,7 @@ from tqdm import tqdm
 from datetime import datetime
 from utils import save_checkpoint
 from PIL import Image
+from models.generator_wrapper import get_models
 
 
 class BatchDict(TypedDict):
@@ -50,10 +51,7 @@ def set_requires_grad(nets: list[nn.Module], requires_grad: bool):
 
 
 def setup() -> SetupVars:
-    dis_X = Discriminator().to(config.DEVICE)
-    dis_Y = Discriminator().to(config.DEVICE)
-    gen_X = Generator().to(config.DEVICE)
-    gen_Y = Generator().to(config.DEVICE)
+    gen_X, gen_Y, dis_X, dis_Y = get_models(config.IMPLEMENTATION)
 
     l1_loss = torch.nn.L1Loss()
     mse_loss = torch.nn.MSELoss()
@@ -110,10 +108,15 @@ def forward(setup_vars: SetupVars, X: torch.Tensor, Y: torch.Tensor) -> ForwardV
 
 
 def _train_discriminator(svars: SetupVars, fvars: ForwardVars):
-    D_score_real_X = svars["dis_X"](fvars["real_X"])
-    D_score_fake_X = svars["dis_X"](fvars["fake_X"].detach())
-    D_score_real_Y = svars["dis_Y"](fvars["real_Y"])
-    D_score_fake_Y = svars["dis_Y"](fvars["fake_Y"].detach())
+    fake_X = fvars["fake_X"].detach()
+    fake_Y = fvars["fake_Y"].detach()
+    real_X = fvars["real_X"]
+    real_Y = fvars["real_Y"]
+
+    D_score_real_X = svars["dis_X"](real_X)
+    D_score_fake_X = svars["dis_X"](fake_X)
+    D_score_real_Y = svars["dis_Y"](real_Y)
+    D_score_fake_Y = svars["dis_Y"](fake_Y)
 
     D_loss_real_X = svars["mse_loss"](
         D_score_real_X,
@@ -134,7 +137,7 @@ def _train_discriminator(svars: SetupVars, fvars: ForwardVars):
 
     D_loss_X = (D_loss_real_X + D_loss_fake_X) / 2
     D_loss_Y = (D_loss_real_Y + D_loss_fake_Y) / 2
-    D_loss = D_loss_X + D_loss_Y
+    D_loss = (D_loss_X + D_loss_Y) * 0.5
 
     return D_loss
 
@@ -159,16 +162,14 @@ def _train_generator(svars: SetupVars, fvars: ForwardVars):
         fvars["rec_Y"], fvars["real_Y"]
     )
 
-    iden_X = svars["gen_Y"](fvars["real_X"])
     iden_Y = svars["gen_X"](fvars["real_Y"])
-
-    # TODO: Not sure if config.LAMBDA_CYCLE is needed in the identity loss.
-    # TODO: What is lambda A and lambda B? Because config only has LAMBDA_IDENTITY.
-    iden_loss_X = config.LAMBDA_IDENTITY * svars["l1_loss"](
-        iden_X, fvars["real_X"]
-    )
     iden_loss_Y = config.LAMBDA_IDENTITY * svars["l1_loss"](
         iden_Y, fvars["real_Y"]
+    )
+
+    iden_X = svars["gen_Y"](fvars["real_X"])
+    iden_loss_X = config.LAMBDA_IDENTITY * svars["l1_loss"](
+        iden_X, fvars["real_X"]
     )
 
     loss_G = adv_loss_G_X + adv_loss_G_Y + \

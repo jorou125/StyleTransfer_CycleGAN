@@ -1,6 +1,13 @@
+from enum import Enum
 import torch
 import torchvision.transforms as transforms
 
+class Implementation(Enum):
+    CUSTOM = "custom"
+    PAPER = "paper"
+    RP = "rp"
+
+IMPLEMENTATION = Implementation.CUSTOM
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 TRAIN_DIR = "data/vangogh2photo/vangogh2photo/"
 RUNS_DIR = "runs"
@@ -9,7 +16,7 @@ LEARNING_RATE = 2e-4
 LAMBDA_IDENTITY = 0.5
 LAMBDA_CYCLE = 10
 NUM_WORKERS = 4
-NUM_EPOCHS = 10
+NUM_EPOCHS = 40
 LOAD_MODEL = False
 SAVE_MODEL = True
 CHECKPOINT_FREQ = 400

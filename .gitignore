@@ -1,2 +1,6 @@
 *.jpg
 runs
+implementations
+*.pyc
+__pycache__
+*.ipynb

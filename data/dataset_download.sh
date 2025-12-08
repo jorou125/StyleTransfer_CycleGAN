@@ -5,7 +5,7 @@ if [[ $FILE != "ae_photos" && $FILE != "apple2orange" && $FILE != "summer2winter
     exit 1
 fi
 
-echo "Specified [$FILE]"
+echo "Downloading [$FILE] dataset..."
 URL=http://efrosgans.eecs.berkeley.edu/cyclegan/datasets/$FILE.zip
 ZIP_FILE=./data/$FILE.zip
 TARGET_DIR=./data/$FILE/
