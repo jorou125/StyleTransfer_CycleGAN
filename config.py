@@ -11,15 +11,25 @@ IMPLEMENTATION = Implementation.CUSTOM
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 TRAIN_DIR = "data/vangogh2photo/vangogh2photo/"
 RUNS_DIR = "runs"
+
+RESUME_TRAIN = False
+CHECKPOINT_DIR = "runs/<id>/checkpoints" # TODO: Replace id
+RESUME_EPOCH = 0
+
+SEED = 42
+REPLAY_BUFFER_SIZE = 50
+DECAY_START = 20                # epoch to start linear LR decay (paper starts at half of NUM_EPOCHS; first 100 same next 100 decay)
 BATCH_SIZE = 1
 LEARNING_RATE = 2e-4
-LAMBDA_IDENTITY = 0.5
+USE_IDENTITY = True
+LAMBDA_IDENTITY = 0.5           # paper suggests 0.5 * lambda_cycle when lambda_cycle = 10 => 5 (TODO: confirm convention)
 LAMBDA_CYCLE = 10
 NUM_WORKERS = 4
-NUM_EPOCHS = 40
+NUM_EPOCHS = 100
 LOAD_MODEL = False
 SAVE_MODEL = True
-CHECKPOINT_FREQ = 400
+SAMPLE_EVERY = 1
+CKPT_EVERY = 1
 CHECKPOINT_GEN_A = "genh.pth.tar"
 CHECKPOINT_GEN_B = "genz.pth.tar"
 CHECKPOINT_CRITIC_A = "critich.pth.tar"

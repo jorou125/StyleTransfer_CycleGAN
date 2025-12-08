@@ -14,25 +14,26 @@ class ResnetBlock(nn.Module):
             nn.ReflectionPad2d(1),
             nn.Conv2d(dim, dim, 3, padding=0, bias=use_bias),
             norm_layer(dim)
-        ]  
+        ]
         self.conv_block = nn.Sequential(*layers)
 
     def forward(self, x):
         return x + self.conv_block(x)
 
 class Generator(nn.Module):
-    def __init__(self, input_nc=3, output_nc=3, ngf=64, norm_layer=functools.partial(nn.InstanceNorm2d, affine=False, track_running_stats=True), n_blocks=9):
+    def __init__(self, input_nc=3, output_nc=3, ngf=64, norm_layer=functools.partial(nn.InstanceNorm2d, affine=False, track_running_stats=False), n_blocks=9
+    ):
         super().__init__()
         if type(norm_layer) == functools.partial:
             use_bias = norm_layer.func == nn.InstanceNorm2d
         else:
             use_bias = norm_layer == nn.InstanceNorm2d
         model = [
-            nn.ReflectionPad2d(3), 
-            nn.Conv2d(input_nc, ngf, kernel_size=7, padding=0, bias=use_bias), 
-            norm_layer(ngf), 
+            nn.ReflectionPad2d(3),
+            nn.Conv2d(input_nc, ngf, kernel_size=7, padding=0, bias=use_bias),
+            norm_layer(ngf),
             nn.ReLU(True)
-            ]
+        ]
 
         n_du_sample = 2
         for i in range(n_du_sample):
@@ -63,8 +64,8 @@ class Generator(nn.Module):
         model += [
             nn.ReflectionPad2d(3),
             nn.Conv2d(ngf, output_nc, kernel_size=7, padding=0),
-            nn.Tanh()      
-                  ]
+            nn.Tanh()
+        ]
 
         self.model = nn.Sequential(*model)
 
