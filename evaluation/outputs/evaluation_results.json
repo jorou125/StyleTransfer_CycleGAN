@@ -1,0 +1,50 @@
+{
+    "monet_eval1": {
+        "content_lpips": 0.24794389307498932,
+        "style_lpips": 0.7716104900541384
+    },
+    "monet_eval2": {
+        "content_lpips": 0.2948005199432373,
+        "style_lpips": 0.755173801883193
+    },
+    "monet_eval3": {
+        "content_lpips": 0.1767619103193283,
+        "style_lpips": 0.7421322464942932
+    },
+    "cezanne_eval1": {
+        "content_lpips": 0.3569677770137787,
+        "style_lpips": 0.71098268854207
+    },
+    "cezanne_eval2": {
+        "content_lpips": 0.38628748059272766,
+        "style_lpips": 0.6935229589199198
+    },
+    "cezanne_eval3": {
+        "content_lpips": 0.25700172781944275,
+        "style_lpips": 0.642283434497899
+    },
+    "ukiyoe_eval1": {
+        "content_lpips": 0.4663182497024536,
+        "style_lpips": 0.7111875806924508
+    },
+    "ukiyoe_eval2": {
+        "content_lpips": 0.46722912788391113,
+        "style_lpips": 0.728547605951476
+    },
+    "ukiyoe_eval3": {
+        "content_lpips": 0.3125351667404175,
+        "style_lpips": 0.6930127680981567
+    },
+    "vangogh_eval1": {
+        "content_lpips": 0.28483009338378906,
+        "style_lpips": 0.7526936402916908
+    },
+    "vangogh_eval2": {
+        "content_lpips": 0.3383142650127411,
+        "style_lpips": 0.7215342546999455
+    },
+    "vangogh_eval3": {
+        "content_lpips": 0.2931176424026489,
+        "style_lpips": 0.6980680404603481
+    }
+}

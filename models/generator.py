@@ -73,6 +73,7 @@ class Generator(nn.Module):
 
 
 if __name__ == "__main__":
+    iter = 2  # Number of iterations
     path_pretraind = "checkpoints\\horse2zebra_pretrained\\latest_net_G.pth"
     print("Loading pre-trained generator from:", path_pretraind)
     checkpoint = torch.load(path_pretraind, map_location="cpu")
@@ -94,7 +95,9 @@ if __name__ == "__main__":
     ])
     input_tensor = preprocess(input_image).unsqueeze(0)  # create a mini-batch as expected by the model
     with torch.no_grad():
-        output_tensor = gen(input_tensor)
+        for _ in range(iter):  # I added this part because a single pass does not transform enough
+            output_tensor = gen(input_tensor)
+            input_tensor = output_tensor
     postprocess = transforms.Compose([
         transforms.Normalize((-1, -1, -1), (2, 2, 2)),
         transforms.ToPILImage()

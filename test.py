@@ -9,7 +9,7 @@ import tkinter as tk
 from tkinter import filedialog
 from PIL import ImageTk
 
-def test_generator_on_image(image_path, generator, device):
+def test_generator_on_image(image_path, generator, device, iter=1):
     image = Image.open(image_path).convert("RGB")
     transform = transforms.Compose([
         transforms.Resize((256, 256)),
@@ -18,7 +18,10 @@ def test_generator_on_image(image_path, generator, device):
     ])
     input_image = transform(image).unsqueeze(0).to(device)
     with torch.no_grad():
-        output_image = generator(input_image)
+        for _ in range(iter):
+            # I added this part because a single pass does not transform enough
+            output_image = generator(input_image)
+            input_image = output_image
     return output_image.cpu().squeeze(0)
 
 def load_pretrained_generator(checkpoint_path, device):
@@ -49,6 +52,7 @@ if __name__ == "__main__":
 
     image_dir = None
     images = []
+    iter_count = 1  # Default number of iterations
 
     def select_folder():
         global image_dir, images
@@ -70,8 +74,13 @@ if __name__ == "__main__":
         input_label.config(image=input_img_tk)
         input_label.image = input_img_tk
 
+        try:
+            iters = int(iter_entry.get())
+        except Exception:
+            iters = 1
+
         for style, gen in generators.items():
-            output = test_generator_on_image(image_path, gen, device)
+            output = test_generator_on_image(image_path, gen, device, iter=iters)
             output_pil = transforms.ToPILImage()(output * 0.5 + 0.5)
             output_img_tk = ImageTk.PhotoImage(output_pil)
             output_labels[style].config(image=output_img_tk)
@@ -87,7 +96,7 @@ if __name__ == "__main__":
     root = tk.Tk()
     root.title("Style Transfer Comparison")
 
-    tk.Button(root, text="Select Image Folder", command=select_folder).grid(row=0, column=0, columnspan=5)
+    tk.Button(root, text="Select Image Folder", command=select_folder).grid(row=0, column=0, columnspan=6)
 
     tk.Label(root, text="Input").grid(row=1, column=0)
     for idx, style in enumerate(CHECKPOINTS.keys()):
@@ -106,5 +115,10 @@ if __name__ == "__main__":
     idx_entry.grid(row=3, column=1)
     idx_entry.bind("<Return>", on_index_enter)
     tk.Button(root, text="Show", command=on_index_enter).grid(row=3, column=2)
+
+    tk.Label(root, text="Iterations:").grid(row=3, column=3)
+    iter_entry = tk.Entry(root, width=5)
+    iter_entry.insert(0, "1")
+    iter_entry.grid(row=3, column=4)
 
     root.mainloop()
