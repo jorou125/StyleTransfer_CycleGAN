@@ -9,17 +9,17 @@ class Implementation(Enum):
 
 IMPLEMENTATION = Implementation.CUSTOM
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-TRAIN_DIR = "data/vangogh2photo/vangogh2photo/"
+TRAIN_DIR = "data\cezanne2photo\cezanne2photo"
 RUNS_DIR = "runs"
 
-RESUME_TRAIN = True
+RESUME_TRAIN = False
 CHECKPOINT_DIR = "runs/2025-12-08_20-51-23/checkpoints" # TODO: Replace id
 RESUME_EPOCH = 36
 
 SEED = 42
 REPLAY_BUFFER_SIZE = 50
 NUM_EPOCHS = 100
-DECAY_START = 0.5 * NUM_EPOCHS  # epoch to start linear LR decay (paper starts at half of NUM_EPOCHS; first 100 same next 100 decay)
+DECAY_START = 100  # epoch to start linear LR decay (paper starts at half of NUM_EPOCHS; first 100 same next 100 decay)
 BATCH_SIZE = 1
 LEARNING_RATE = 2e-4
 USE_IDENTITY = True
