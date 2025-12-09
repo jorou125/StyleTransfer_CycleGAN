@@ -179,8 +179,6 @@ def setup() -> SetupVars:
         ckpt_path = os.path.join(config.CHECKPOINT_DIR, f"checkpoint_{config.RESUME_EPOCH}.pth")
         if not os.path.exists(ckpt_path):
             raise FileNotFoundError(f"Checkpoint file {ckpt_path} not found")
-
-        print(f"Resuming training from {config.RESUME_EPOCH}")
         
         ckpt_epoch = load_checkpoint_all(ckpt_path, G_AB, G_BA, D_A, D_B, optim_G, optim_D_A, optim_D_B, scheduler_G, scheduler_D_A, scheduler_D_B, config.DEVICE)
         G_AB.train()
@@ -189,8 +187,10 @@ def setup() -> SetupVars:
         D_B.train()
 
         if ckpt_epoch is None:
+            print(f"Resuming training from epoch index of {config.RESUME_EPOCH}. Next epoch will start at epoch index of {start_epoch}. Using config.RESUME_EPOCH = {config.RESUME_EPOCH}")
             start_epoch = config.RESUME_EPOCH + 1
         else:
+            print(f"Resuming training from epoch index of {config.RESUME_EPOCH}. Next epoch will start at epoch index of {start_epoch}. Using ckpt_epoch = {ckpt_epoch}")
             start_epoch = int(ckpt_epoch) + 1
 
     return {
