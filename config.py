@@ -12,9 +12,9 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 TRAIN_DIR = "data/vangogh2photo/vangogh2photo/"
 RUNS_DIR = "runs"
 
-RESUME_TRAIN = False
-CHECKPOINT_DIR = "runs/<id>/checkpoints" # TODO: Replace id
-RESUME_EPOCH = 0
+RESUME_TRAIN = True
+CHECKPOINT_DIR = "runs/2025-12-08_20-51-23/checkpoints" # TODO: Replace id
+RESUME_EPOCH = 36
 
 SEED = 42
 REPLAY_BUFFER_SIZE = 50

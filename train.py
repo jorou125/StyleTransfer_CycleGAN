@@ -98,7 +98,7 @@ def save_checkpoint_all(run_ckpt_dir, epoch, G_AB, G_BA, D_A, D_B, optim_G, opti
     torch.save(to_save, filename_checkpoint_latest)
 
     with open(filename_latest, "w") as f:
-        f.write(run_ckpt_dir)
+        f.write(filename_checkpoint_latest)
 
 def load_checkpoint_all(ckpt_file_path, G_AB, G_BA, D_A, D_B, optim_G, optim_D_A, optim_D_B, scheduler_G=None, scheduler_D_A=None, scheduler_D_B=None, device="cpu"):
     ckpt = torch.load(ckpt_file_path, map_location=device)
@@ -343,7 +343,7 @@ def train():
             save_image((grid * 0.5) + 0.5, os.path.join(sample_dir, f"epoch_{epoch_index}.png"))
 
         # Saving checkpoints
-        if config.SAVE_MODEL and (epoch_index % config.CKPT_EVERY == 0) or epoch_index == config.NUM_EPOCHS - 1:
+        if config.SAVE_MODEL and (epoch_index % config.CKPT_EVERY == 0 or epoch_index == config.NUM_EPOCHS - 1):
             save_checkpoint_all(ckpt_dir, epoch_index, G_AB, G_BA, D_A, D_B, optim_G, optim_D_A, optim_D_B, scheduler_G, scheduler_D_A, scheduler_D_B)
 
 if __name__ == "__main__":
