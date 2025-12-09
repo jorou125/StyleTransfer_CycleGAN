@@ -187,11 +187,11 @@ def setup() -> SetupVars:
         D_B.train()
 
         if ckpt_epoch is None:
-            print(f"Resuming training from epoch index of {config.RESUME_EPOCH}. Next epoch will start at epoch index of {start_epoch}. Using config.RESUME_EPOCH = {config.RESUME_EPOCH}")
             start_epoch = config.RESUME_EPOCH + 1
+            print(f"Resuming training from epoch index of {config.RESUME_EPOCH}. Next epoch will start at epoch index of {start_epoch}. Using config.RESUME_EPOCH = {config.RESUME_EPOCH}")
         else:
-            print(f"Resuming training from epoch index of {config.RESUME_EPOCH}. Next epoch will start at epoch index of {start_epoch}. Using ckpt_epoch = {ckpt_epoch}")
             start_epoch = int(ckpt_epoch) + 1
+            print(f"Resuming training from epoch index of {config.RESUME_EPOCH}. Next epoch will start at epoch index of {start_epoch}. Using ckpt_epoch = {ckpt_epoch}")
 
     return {
         "D_A": D_A,
