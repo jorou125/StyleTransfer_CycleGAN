@@ -10,8 +10,36 @@ import config
 import os
 from tqdm import tqdm
 from datetime import datetime
-from utils import save_checkpoint
 from PIL import Image
+from models.generator_wrapper import get_models
+from torchvision.utils import make_grid, save_image
+
+class ReplayBuffer:
+    def __init__(self, max_size: int = 50):
+        self.max_size = max_size
+        self.data = []
+
+    def push_and_pop(self, data: torch.Tensor) -> torch.Tensor:
+        to_return = []
+
+        for img in data.detach().cpu():
+            img = img.unsqueeze(0) # (1, C, H, W)
+
+            if len(self.data) < self.max_size:
+                self.data.append(img)
+                to_return.append(img)
+            else:
+                # Return old and replace with new
+                if torch.rand(1).item() > 0.5:
+                    idx = torch.randint(0, len(self.data), (1,)).item()
+                    old = self.data[idx]
+                    self.data[idx] = img
+                    to_return.append(old)
+                # Return new
+                else:
+                    to_return.append(img)
+        
+        return torch.cat(to_return, dim=0).to(config.DEVICE)
 
 
 class BatchDict(TypedDict):
@@ -20,27 +48,78 @@ class BatchDict(TypedDict):
 
 
 class SetupVars(TypedDict):
-    dis_X: Discriminator
-    dis_Y: Discriminator
-    gen_X: Generator
-    gen_Y: Generator
+    D_A: Discriminator
+    D_B: Discriminator
+    G_AB: Generator
+    G_BA: Generator
     l1_loss: torch.nn.L1Loss
     mse_loss: torch.nn.MSELoss
-    dis_combined_params: list[torch.nn.parameter.Parameter]
-    gen_combined_params: list[torch.nn.parameter.Parameter]
-    optimizer_D: torch.optim.Adam
-    optimizer_G: torch.optim.Adam
+    optim_D_A: torch.optim.Adam
+    optim_D_B: torch.optim.Adam
+    optim_G: torch.optim.Adam
+    scheduler_G: torch.optim.lr_scheduler.LambdaLR
+    scheduler_D_A: torch.optim.lr_scheduler.LambdaLR
+    scheduler_D_B: torch.optim.lr_scheduler.LambdaLR
+    fake_A_buffer: ReplayBuffer
+    fake_B_buffer: ReplayBuffer
     dataset: ImageDataset
     loader: DataLoader[BatchDict]
+    start_epoch: int
 
 
 class ForwardVars(TypedDict):
-    real_X: torch.Tensor
-    real_Y: torch.Tensor
-    fake_X: torch.Tensor
-    fake_Y: torch.Tensor
-    rec_X: torch.Tensor
-    rec_Y: torch.Tensor
+    fake_A: torch.Tensor
+    fake_B: torch.Tensor
+    rec_A: torch.Tensor
+    rec_B: torch.Tensor
+
+
+def save_checkpoint_all(run_ckpt_dir, epoch, G_AB, G_BA, D_A, D_B, optim_G, optim_D_A, optim_D_B, scheduler_G=None, scheduler_D_A=None, scheduler_D_B=None):
+    os.makedirs(run_ckpt_dir, exist_ok=True)
+    filename_checkpoint = os.path.join(run_ckpt_dir, f"checkpoint_{epoch}.pth")
+    filename_checkpoint_latest = os.path.join(run_ckpt_dir, f"latest_checkpoint.pth")
+    filename_latest = os.path.join(run_ckpt_dir, "latest.txt")
+    
+    to_save = {
+        "epoch": epoch,
+        "G_AB": G_AB.state_dict(),
+        "G_BA": G_BA.state_dict(),
+        "D_A": D_A.state_dict(),
+        "D_B": D_B.state_dict(),
+        "optim_G": optim_G.state_dict(),
+        "optim_D_A": optim_D_A.state_dict(),
+        "optim_D_B": optim_D_B.state_dict(),
+        "scheduler_G": scheduler_G.state_dict() if scheduler_G is not None else None,
+        "scheduler_D_A": scheduler_D_A.state_dict() if scheduler_D_A is not None else None,
+        "scheduler_D_B": scheduler_D_B.state_dict() if scheduler_D_B is not None else None
+    }
+
+    torch.save(to_save, filename_checkpoint)
+    torch.save(to_save, filename_checkpoint_latest)
+
+    with open(filename_latest, "w") as f:
+        f.write(filename_checkpoint_latest)
+
+def load_checkpoint_all(ckpt_file_path, G_AB, G_BA, D_A, D_B, optim_G, optim_D_A, optim_D_B, scheduler_G=None, scheduler_D_A=None, scheduler_D_B=None, device="cpu"):
+    ckpt = torch.load(ckpt_file_path, map_location=device)
+
+    if "G_AB" in ckpt:
+        G_AB.load_state_dict(ckpt["G_AB"])
+        G_BA.load_state_dict(ckpt["G_BA"])
+        D_A.load_state_dict(ckpt["D_A"])
+        D_B.load_state_dict(ckpt["D_B"])
+
+    if "optim_G" in ckpt:
+        optim_G.load_state_dict(ckpt["optim_G"])
+        optim_D_A.load_state_dict(ckpt["optim_D_A"])
+        optim_D_B.load_state_dict(ckpt["optim_D_B"])
+
+    if scheduler_G is not None and ckpt.get("scheduler_G", None) is not None:
+        scheduler_G.load_state_dict(ckpt["scheduler_G"])
+        scheduler_D_A.load_state_dict(ckpt["scheduler_D_A"])
+        scheduler_D_B.load_state_dict(ckpt["scheduler_D_B"])
+
+    return ckpt.get("epoch", None)
 
 
 def set_requires_grad(nets: list[nn.Module], requires_grad: bool):
@@ -50,21 +129,39 @@ def set_requires_grad(nets: list[nn.Module], requires_grad: bool):
 
 
 def setup() -> SetupVars:
-    dis_X = Discriminator().to(config.DEVICE)
-    dis_Y = Discriminator().to(config.DEVICE)
-    gen_X = Generator().to(config.DEVICE)
-    gen_Y = Generator().to(config.DEVICE)
+    models = get_models(config.IMPLEMENTATION)
+    G_AB = models[0] # G_AB = A -> B
+    G_BA = models[1] # G_BA = B -> A
+    D_A = models[2]  # D_A = critique A
+    D_B = models[3]  # D_B = critique B
 
-    l1_loss = torch.nn.L1Loss()
-    mse_loss = torch.nn.MSELoss()
+    G_AB.to(config.DEVICE)
+    G_BA.to(config.DEVICE)
+    D_A.to(config.DEVICE)
+    D_B.to(config.DEVICE)
 
-    dis_combined_params = [*dis_X.parameters(), *dis_Y.parameters()]
-    optimizer_D = torch.optim.Adam(
-        dis_combined_params, lr=config.LEARNING_RATE, betas=(0.5, 0.999))
+    l1_loss = torch.nn.L1Loss().to(config.DEVICE)
+    mse_loss = torch.nn.MSELoss().to(config.DEVICE)
 
-    gen_combined_params = [*gen_X.parameters(), *gen_Y.parameters()]
-    optimizer_G = torch.optim.Adam(
+    optim_D_A = torch.optim.Adam(
+        D_A.parameters(), lr=config.LEARNING_RATE, betas=(0.5, 0.999))
+    optim_D_B = torch.optim.Adam(
+        D_B.parameters(), lr=config.LEARNING_RATE, betas=(0.5, 0.999))
+
+    gen_combined_params = list(G_AB.parameters()) + list(G_BA.parameters())
+    optim_G = torch.optim.Adam(
         gen_combined_params, lr=config.LEARNING_RATE, betas=(0.5, 0.999))
+    
+    def lr_lambda(epoch):
+        if epoch < config.DECAY_START:
+            return 1.0
+        else:
+            epoch_normalized = (epoch - config.DECAY_START) / float(config.NUM_EPOCHS - config.DECAY_START)
+            return max(0.0, 1.0 - epoch_normalized)
+    
+    scheduler_G = torch.optim.lr_scheduler.LambdaLR(optim_G, lr_lambda)
+    scheduler_D_A = torch.optim.lr_scheduler.LambdaLR(optim_D_A, lr_lambda)
+    scheduler_D_B = torch.optim.lr_scheduler.LambdaLR(optim_D_B, lr_lambda)
 
     dataset = ImageDataset(
         root_A=os.path.join(config.TRAIN_DIR, "trainA"),
@@ -74,194 +171,180 @@ def setup() -> SetupVars:
 
     loader = get_loader_from_dataset(dataset)
 
+    fake_A_buffer = ReplayBuffer(max_size=config.REPLAY_BUFFER_SIZE)
+    fake_B_buffer = ReplayBuffer(max_size=config.REPLAY_BUFFER_SIZE)
+
+    start_epoch = 0
+    if config.RESUME_TRAIN:
+        ckpt_path = os.path.join(config.CHECKPOINT_DIR, f"checkpoint_{config.RESUME_EPOCH}.pth")
+        if not os.path.exists(ckpt_path):
+            raise FileNotFoundError(f"Checkpoint file {ckpt_path} not found")
+        
+        ckpt_epoch = load_checkpoint_all(ckpt_path, G_AB, G_BA, D_A, D_B, optim_G, optim_D_A, optim_D_B, scheduler_G, scheduler_D_A, scheduler_D_B, config.DEVICE)
+        G_AB.train()
+        G_BA.train()
+        D_A.train()
+        D_B.train()
+
+        if ckpt_epoch is None:
+            start_epoch = config.RESUME_EPOCH + 1
+            print(f"Resuming training from epoch index of {config.RESUME_EPOCH}. Next epoch will start at epoch index of {start_epoch}. Using config.RESUME_EPOCH = {config.RESUME_EPOCH}")
+        else:
+            start_epoch = int(ckpt_epoch) + 1
+            print(f"Resuming training from epoch index of {config.RESUME_EPOCH}. Next epoch will start at epoch index of {start_epoch}. Using ckpt_epoch = {ckpt_epoch}")
+
     return {
-        "dis_X": dis_X,
-        "dis_Y": dis_Y,
-        "gen_X": gen_X,
-        "gen_Y": gen_Y,
+        "D_A": D_A,
+        "D_B": D_B,
+        "G_AB": G_AB,
+        "G_BA": G_BA,
         "l1_loss": l1_loss,
         "mse_loss": mse_loss,
-        "dis_combined_params": dis_combined_params,
-        "gen_combined_params": gen_combined_params,
-        "optimizer_D": optimizer_D,
-        "optimizer_G": optimizer_G,
+        "optim_D_A": optim_D_A,
+        "optim_D_B": optim_D_B,
+        "optim_G": optim_G,
+        "scheduler_G": scheduler_G,
+        "scheduler_D_A": scheduler_D_A,
+        "scheduler_D_B": scheduler_D_B,
+        "fake_A_buffer": fake_A_buffer,
+        "fake_B_buffer": fake_B_buffer,
         "dataset": dataset,
-        "loader": loader
+        "loader": loader,
+        "start_epoch": start_epoch
     }
 
 
-def forward(setup_vars: SetupVars, X: torch.Tensor, Y: torch.Tensor) -> ForwardVars:
-    real_X = X.to(config.DEVICE)
-    real_Y = Y.to(config.DEVICE)
+def forward(G_AB: Generator, G_BA: Generator, real_A: torch.Tensor, real_B: torch.Tensor) -> ForwardVars:
+    real_A = real_A.to(config.DEVICE)
+    real_B = real_B.to(config.DEVICE)
 
-    fake_X = setup_vars["gen_Y"](real_Y)
-    fake_Y = setup_vars["gen_X"](real_X)
-    rec_X = setup_vars["gen_Y"](fake_Y)
-    rec_Y = setup_vars["gen_X"](fake_X)
+    fake_A = G_BA(real_B) # G_BA(B) -> A
+    fake_B = G_AB(real_A) # G_AB(A) -> B
+    rec_A = G_BA(fake_B)  # G_BA(G_AB(A)) -> A
+    rec_B = G_AB(fake_A)  # G_AB(G_BA(B)) -> B
 
     return {
-        "real_X": real_X,
-        "real_Y": real_Y,
-        "fake_X": fake_X,
-        "fake_Y": fake_Y,
-        "rec_X": rec_X,
-        "rec_Y": rec_Y,
+        "fake_A": fake_A,
+        "fake_B": fake_B,
+        "rec_A": rec_A,
+        "rec_B": rec_B,
     }
 
+def train_epoch(svars: SetupVars, epoch_index):
+    G_AB, G_BA, D_A, D_B = svars["G_AB"], svars["G_BA"], svars["D_A"], svars["D_B"]
+    optim_G, optim_D_A, optim_D_B = svars["optim_G"], svars["optim_D_A"], svars["optim_D_B"]
+    fake_A_buffer = svars["fake_A_buffer"]
+    fake_B_buffer = svars["fake_B_buffer"]
+    mse_loss, l1_loss = svars["mse_loss"], svars["l1_loss"]
+    loader = svars["loader"]
+    
+    for batch in tqdm(loader, desc=f"Epoch {epoch_index+1}/{config.NUM_EPOCHS}"):
+        real_A = batch["A"].to(config.DEVICE) # Vangogh
+        real_B = batch["B"].to(config.DEVICE) # Photos
 
-def _train_discriminator(svars: SetupVars, fvars: ForwardVars):
-    D_score_real_X = svars["dis_X"](fvars["real_X"])
-    D_score_fake_X = svars["dis_X"](fvars["fake_X"].detach())
-    D_score_real_Y = svars["dis_Y"](fvars["real_Y"])
-    D_score_fake_Y = svars["dis_Y"](fvars["fake_Y"].detach())
+        ##### Generators -----
+        set_requires_grad([D_A, D_B], False)
+        optim_G.zero_grad()
 
-    D_loss_real_X = svars["mse_loss"](
-        D_score_real_X,
-        torch.ones_like(D_score_real_X).to(config.DEVICE)
-    )
-    D_loss_fake_X = svars["mse_loss"](
-        D_score_fake_X,
-        torch.zeros_like(D_score_fake_X).to(config.DEVICE)
-    )
-    D_loss_real_Y = svars["mse_loss"](
-        D_score_real_Y,
-        torch.ones_like(D_score_real_Y).to(config.DEVICE)
-    )
-    D_loss_fake_Y = svars["mse_loss"](
-        D_score_fake_Y,
-        torch.zeros_like(D_score_fake_Y).to(config.DEVICE)
-    )
+        forwardVars = forward(G_AB, G_BA, real_A, real_B)
+        fake_A, fake_B, rec_A, rec_B = forwardVars["fake_A"], forwardVars["fake_B"], forwardVars["rec_A"], forwardVars["rec_B"]
 
-    D_loss_X = (D_loss_real_X + D_loss_fake_X) / 2
-    D_loss_Y = (D_loss_real_Y + D_loss_fake_Y) / 2
-    D_loss = D_loss_X + D_loss_Y
+        # Adversarial losses
+        pred_fake_A = D_A(fake_A) # G_BA(B) -> A
+        pred_fake_B = D_B(fake_B) # G_AB(A) -> B
+        adv_loss_A = mse_loss(pred_fake_A, torch.ones_like(pred_fake_A).to(config.DEVICE))
+        adv_loss_B = mse_loss(pred_fake_B, torch.ones_like(pred_fake_B).to(config.DEVICE))
+        adv_loss = (adv_loss_A + adv_loss_B) * 0.5
 
-    return D_loss
+        # Cycle losses
+        cycle_loss_A = l1_loss(rec_A, real_A) # G_BA(G_AB(A)) & A
+        cycle_loss_B = l1_loss(rec_B, real_B) # G_AB(G_BA(B)) & B
+        cycle_loss = config.LAMBDA_CYCLE * (cycle_loss_A + cycle_loss_B) * 0.5
 
+        # Identity loss
+        if config.USE_IDENTITY:
+            idt_A = G_BA(real_A) # G_BA(A) -> A
+            idt_B = G_AB(real_B) # G_AB(B) -> B
+            id_loss_A = l1_loss(idt_A, real_A)
+            id_loss_B = l1_loss(idt_B, real_B)
+            id_loss = config.LAMBDA_IDENTITY * (id_loss_A + id_loss_B) * 0.5
+        else:
+            id_loss = torch.tensor(0.0, device=config.DEVICE)
 
-def _train_generator(svars: SetupVars, fvars: ForwardVars):
-    val_G_X = svars["dis_X"](fvars["fake_X"])
-    adv_loss_G_X = svars["mse_loss"](
-        val_G_X,
-        torch.ones_like(val_G_X).to(config.DEVICE)
-    )
+        loss_G = adv_loss + cycle_loss + id_loss
+        loss_G.backward()
+        optim_G.step()
+        set_requires_grad([D_A, D_B], True)
 
-    val_G_Y = svars["dis_Y"](fvars["fake_Y"])
-    adv_loss_G_Y = svars["mse_loss"](
-        val_G_Y,
-        torch.ones_like(val_G_Y).to(config.DEVICE)
-    )
+        ##### Discriminator A -----
+        optim_D_A.zero_grad()
+        pred_real_A = D_A(real_A)
+        loss_D_A_real = mse_loss(pred_real_A, torch.ones_like(pred_real_A).to(config.DEVICE))
 
-    cycle_loss_G_X = config.LAMBDA_CYCLE * svars["l1_loss"](
-        fvars["rec_X"], fvars["real_X"]
-    )
-    cycle_loss_G_Y = config.LAMBDA_CYCLE * svars["l1_loss"](
-        fvars["rec_Y"], fvars["real_Y"]
-    )
+        fake_A_for_D = fake_A_buffer.push_and_pop(fake_A)
+        pred_fake_A = D_A(fake_A_for_D.detach())
+        loss_D_A_fake = mse_loss(pred_fake_A, torch.zeros_like(pred_fake_A).to(config.DEVICE))
 
-    iden_X = svars["gen_Y"](fvars["real_X"])
-    iden_Y = svars["gen_X"](fvars["real_Y"])
+        loss_D_A = (loss_D_A_real + loss_D_A_fake) * 0.5
+        loss_D_A.backward()
+        optim_D_A.step()
+       
+        ##### Discriminator B -----
+        optim_D_B.zero_grad()
+        pred_real_B = D_B(real_B)
+        loss_D_B_real = mse_loss(pred_real_B, torch.ones_like(pred_real_B).to(config.DEVICE))
 
-    # TODO: Not sure if config.LAMBDA_CYCLE is needed in the identity loss.
-    # TODO: What is lambda A and lambda B? Because config only has LAMBDA_IDENTITY.
-    iden_loss_X = config.LAMBDA_IDENTITY * svars["l1_loss"](
-        iden_X, fvars["real_X"]
-    )
-    iden_loss_Y = config.LAMBDA_IDENTITY * svars["l1_loss"](
-        iden_Y, fvars["real_Y"]
-    )
+        fake_B_for_D = fake_B_buffer.push_and_pop(fake_B)
+        pred_fake_B = D_B(fake_B_for_D.detach())
+        loss_D_B_fake = mse_loss(pred_fake_B, torch.zeros_like(pred_fake_B).to(config.DEVICE))
 
-    loss_G = adv_loss_G_X + adv_loss_G_Y + \
-        cycle_loss_G_X + cycle_loss_G_Y + \
-        iden_loss_X + iden_loss_Y
-
-    return loss_G
-
-
-def train_discriminator(svars: SetupVars, fvars: ForwardVars):
-    set_requires_grad([svars["gen_X"], svars["gen_Y"]], False)
-
-    svars["optimizer_D"].zero_grad()
-
-    D_loss = _train_discriminator(svars, fvars)
-    D_loss.backward()
-    svars["optimizer_D"].step()
-
-    set_requires_grad([svars["gen_X"], svars["gen_Y"]], True)
+        loss_D_B = (loss_D_B_real + loss_D_B_fake) * 0.5
+        loss_D_B.backward()
+        optim_D_B.step()
 
 
-def train_generator(svars: SetupVars, fvars: ForwardVars):
-    set_requires_grad([svars["dis_X"], svars["dis_Y"]], False)
 
-    svars["optimizer_G"].zero_grad()
+def train():
+    torch.manual_seed(config.SEED)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(config.SEED)
 
-    G_loss = _train_generator(svars, fvars)
-    G_loss.backward()
-    svars["optimizer_G"].step()
-
-    set_requires_grad([svars["dis_X"], svars["dis_Y"]], True)
-
-
-def train(svars: SetupVars):
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     run_dir = os.path.join(config.RUNS_DIR, timestamp)
     os.makedirs(run_dir, exist_ok=True)
+    sample_dir = os.path.join(run_dir, "samples")
+    os.makedirs(sample_dir, exist_ok=True)
+    ckpt_dir = os.path.join(run_dir, "checkpoints")
+    os.makedirs(ckpt_dir, exist_ok=True)
 
-    for i in range(config.NUM_EPOCHS):
-        for j, sample in enumerate(tqdm(svars["loader"])):
-            X, Y = sample["A"], sample["B"]
+    svars = setup()
+    G_AB, G_BA, D_A, D_B = svars["G_AB"], svars["G_BA"], svars["D_A"], svars["D_B"]
+    scheduler_G, scheduler_D_A, scheduler_D_B = svars["scheduler_G"], svars["scheduler_D_A"], svars["scheduler_D_B"]
+    optim_G, optim_D_A, optim_D_B = svars["optim_G"], svars["optim_D_A"], svars["optim_D_B"]
 
-            fvars = forward(svars, X, Y)
-            train_generator(svars, fvars)
-            train_discriminator(svars, fvars)
+    start_epoch = svars["start_epoch"]
+    for epoch_index in range(start_epoch, config.NUM_EPOCHS):
+        train_epoch(svars, epoch_index)
 
-            if config.SAVE_MODEL and j % config.CHECKPOINT_FREQ == 0:
-                try:
-                    svars["gen_X"].eval()
-                    svars["gen_Y"].eval()
-                    svars["dis_X"].eval()
-                    svars["dis_Y"].eval()
+        # Steping the schedulers
+        scheduler_G.step()
+        scheduler_D_A.step()
+        scheduler_D_B.step()
 
-                    save_checkpoint(
-                        svars["gen_X"],
-                        os.path.join(run_dir, config.CHECKPOINT_GEN_A)
-                    )
-                    save_checkpoint(
-                        svars["gen_Y"],
-                        os.path.join(run_dir, config.CHECKPOINT_GEN_B)
-                    )
-                    save_checkpoint(
-                        svars["dis_X"],
-                        os.path.join(run_dir, config.CHECKPOINT_CRITIC_A)
-                    )
-                    save_checkpoint(
-                        svars["dis_Y"],
-                        os.path.join(run_dir, config.CHECKPOINT_CRITIC_B)
-                    )
+        if epoch_index % config.SAMPLE_EVERY == 0 or epoch_index == config.NUM_EPOCHS - 1:
+            batch = next(iter(svars["loader"]))
+            real_A = batch["A"].to(config.DEVICE)
+            real_B = batch["B"].to(config.DEVICE)
+            with torch.no_grad():
+                fake_A = svars["G_BA"](real_B)
+                fake_B = svars["G_AB"](real_A)
 
-                    with torch.no_grad():
-                        image_fake_X: Image.Image = config.output_transforms(
-                            fvars["fake_X"].detach()[0]
-                        )  # type: ignore
-                        image_fake_Y: Image.Image = config.output_transforms(
-                            fvars["fake_Y"].detach()[0]
-                        )  # type: ignore
+            grid = make_grid(torch.cat([real_A, fake_B, real_B, fake_A], dim=0), nrow=real_A.size(0))
+            save_image((grid * 0.5) + 0.5, os.path.join(sample_dir, f"epoch_{epoch_index}.png"))
 
-                        image_fake_X.save(os.path.join(
-                            run_dir, f"{i}_{j}_fake_X.png"))
-                        image_fake_Y.save(os.path.join(
-                            run_dir, f"{i}_{j}_fake_Y.png"))
-                finally:
-                    svars["gen_X"].train()
-                    svars["gen_Y"].train()
-                    svars["dis_X"].train()
-                    svars["dis_Y"].train()
-
-
-def main():
-    setup_vars = setup()
-    train(setup_vars)
-
+        # Saving checkpoints
+        if config.SAVE_MODEL and (epoch_index % config.CKPT_EVERY == 0 or epoch_index == config.NUM_EPOCHS - 1):
+            save_checkpoint_all(ckpt_dir, epoch_index, G_AB, G_BA, D_A, D_B, optim_G, optim_D_A, optim_D_B, scheduler_G, scheduler_D_A, scheduler_D_B)
 
 if __name__ == "__main__":
-    main()
+    train()

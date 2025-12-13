@@ -17,3 +17,12 @@ Legend: [ ] = TODO, [-] = Work in progress, and [x] = Done
 - [ ] Trained models @Ro & @Jo
 - [ ] Build evaluation script @Ro
 - [ ] Résultats @Ro
+
+# Finales
+- [ ] Pip freeze @Ro
+- [ ] Add instructions for gui_test.py, run_generations_on_datasets.py in the README @Jo
+- [ ] Remove cache file @Ro
+- [ ] Add checkpoints @Ro
+- [ ] Edit load_pretrained_generator (in two files) to lead checkpoints @Ro
+- [ ] Supprimer les TODOs et commentaires inutiles @Ro
+
