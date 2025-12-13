@@ -4,13 +4,13 @@ import lpips
 from torchvision import transforms
 from PIL import Image
 from tqdm import tqdm
-
+import csv
 
 input_paths = {
-    "monet": "data/monet2photo/monet2photo/testB",
-    "cezanne": "data/cezanne2photo/cezanne2photo/testB",
-    "ukiyoe": "data/ukiyoe2photo/ukiyoe2photo/testB",
-    "vangogh": "data/vangogh2photo/vangogh2photo/testB"
+    "monet": "data/monet2photo/monet2photo/monet_first2048",
+    "cezanne": "data/cezanne2photo/cezanne2photo/cezanne_first2048",
+    "ukiyoe": "data/ukiyoe2photo/ukiyoe2photo/ukiyoe_first2048",
+    "vangogh": "data/vangogh2photo/vangogh2photo/vangogh_first2048"
 }
 
 output_paths = {
@@ -39,6 +39,16 @@ def load_input_output_images(input_image_path, output_image_path, device):
     output_tensor = transform(output_image).unsqueeze(0).to(device)
     return input_tensor, output_tensor
 
+def save_lpips_csv(style_name, image_names, lpips_scores, save_dir="lpips_results"):
+    os.makedirs(save_dir, exist_ok=True)
+    csv_path = os.path.join(save_dir, f"{style_name}_lpips.csv")
+    with open(csv_path, mode='w', newline='', encoding='utf-8') as f:
+        writer = csv.writer(f)
+        writer.writerow(["image_name", "lpips_value"])
+        for name, score in zip(image_names, lpips_scores):
+            writer.writerow([name, score])
+    print(f"Saved LPIPS scores for {style_name} to {csv_path}")
+
 def print_results(results):
     print("-" * 20)
     print("LPIPS Evaluation Results:")
@@ -56,6 +66,7 @@ if __name__ == "__main__":
         input_dir = input_paths[style_name]
         output_dir = output_paths[style_name]
         lpips_scores = []
+        image_names = []
 
         for img_name in tqdm(os.listdir(input_dir), desc=f"Processing {style_name}"):
             input_image_path = os.path.join(input_dir, img_name)
@@ -68,6 +79,7 @@ if __name__ == "__main__":
             input_tensor, output_tensor = load_input_output_images(input_image_path, output_image_path, device)
             lpips_score = evaluate_lpips(input_tensor, output_tensor, lpips_model, device)
             lpips_scores.append(lpips_score)
+            image_names.append(img_name)
 
         average_lpips = sum(lpips_scores) / len(lpips_scores) if lpips_scores else float('inf')
         results[style_name] = {
@@ -75,4 +87,7 @@ if __name__ == "__main__":
             "num_images": len(lpips_scores)
         }
 
-    print_results(results)  
+        # Save per-image LPIPS to CSV
+        save_lpips_csv(style_name, image_names, lpips_scores)
+
+    print_results(results)
