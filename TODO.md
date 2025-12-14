@@ -14,17 +14,17 @@ Legend: [ ] = TODO, [-] = Work in progress, and [x] = Done
 
 # Pour le 26 Novembre
 - [x] Tweak train script and configs, if needed, to get best results @Ro
-- [ ] Trained models @Ro & @Jo
-- [ ] Build evaluation script @Ro
-- [ ] Résultats @Ro
+- [x] Trained models @Ro & @Jo
+- [x] Build evaluation script @Ro
+- [x] Résultats @Ro
 
 # Finales
-- [ ] Pip freeze @Jo
-- [ ] Add instructions for gui_test.py, run_generations_on_datasets.py in the README @Jo
+- [x] Pip freeze @Jo
+- [x] Add instructions for gui_test.py, run_generations_on_datasets.py in the README @Jo
 - [x] Remove cache file @Ro
 - [x] Add checkpoints @Ro
 - [x] Supprimer les TODOs et commentaires inutiles @Ro
-- [ ] Vérifier ques tous les scripts marchent dans un nouveau venv @Jo
+- [x] Vérifier ques tous les scripts marchent dans un nouveau venv @Jo
   - Prerequis : 
     - [x] Edit load_pretrained_generator (in two files) to lead checkpoints @Ro
 - [ ] Créer un ficher ZIP à partir du dépôt GitHub @Ro

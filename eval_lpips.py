@@ -7,10 +7,10 @@ from tqdm import tqdm
 import csv
 
 input_paths = {
-    "monet": "data/monet2photo/monet2photo/monet_first2048",
-    "cezanne": "data/cezanne2photo/cezanne2photo/cezanne_first2048",
-    "ukiyoe": "data/ukiyoe2photo/ukiyoe2photo/ukiyoe_first2048",
-    "vangogh": "data/vangogh2photo/vangogh2photo/vangogh_first2048"
+    "monet": "data/monet2photo/monet2photo/testB",
+    "cezanne": "data/cezanne2photo/cezanne2photo/testB",
+    "ukiyoe": "data/ukiyoe2photo/ukiyoe2photo/testB",
+    "vangogh": "data/vangogh2photo/vangogh2photo/testB"
 }
 
 output_paths = {

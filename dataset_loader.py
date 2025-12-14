@@ -1,8 +1,6 @@
-import torch
 from PIL import Image
 import os
 import config
-import numpy as np
 from torch.utils.data import Dataset, DataLoader
 
 
