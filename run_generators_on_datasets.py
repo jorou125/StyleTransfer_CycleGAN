@@ -53,7 +53,7 @@ if __name__ == "__main__":
 
     for style_name, gen_path in gen_models_paths.items():
         print(f"Processing style: {style_name}")
-        generator = load_generator(gen_path, device, pretrained=False)
+        generator = load_generator(gen_path, device)
 
         test_images_dir = test_path[style_name]
         for img_name in os.listdir(test_images_dir):
