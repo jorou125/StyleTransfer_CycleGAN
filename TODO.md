@@ -19,14 +19,14 @@ Legend: [ ] = TODO, [-] = Work in progress, and [x] = Done
 - [ ] Résultats @Ro
 
 # Finales
-- [ ] Pip freeze @Ro
+- [ ] Pip freeze @Jo
 - [ ] Add instructions for gui_test.py, run_generations_on_datasets.py in the README @Jo
-- [ ] Remove cache file @Ro
-- [ ] Add checkpoints @Ro
-- [ ] Supprimer les TODOs et commentaires inutiles @Ro
+- [x] Remove cache file @Ro
+- [x] Add checkpoints @Ro
+- [x] Supprimer les TODOs et commentaires inutiles @Ro
 - [ ] Vérifier ques tous les scripts marchent dans un nouveau venv @Jo
   - Prerequis : 
-    - [ ] Edit load_pretrained_generator (in two files) to lead checkpoints @Ro
+    - [x] Edit load_pretrained_generator (in two files) to lead checkpoints @Ro
 - [ ] Créer un ficher ZIP à partir du dépôt GitHub @Ro
   - Prerequis :
     - [ ] Envoyer les checkpoints @Jo

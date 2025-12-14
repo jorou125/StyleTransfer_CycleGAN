@@ -36,10 +36,13 @@ def test_generator_on_image(image_path, generator, device, iter=1):
             gen = generator(gen)
     return gen.squeeze(0).cpu()
 
-def load_pretrained_generator(checkpoint_path, device):
-    checkpoint = torch.load(checkpoint_path, map_location=device)
+def load_generator(ckpt_file_path, device, pretrained=True):
+    ckpt = torch.load(ckpt_file_path, map_location=device)
     gen = Generator()
-    gen.load_state_dict(checkpoint, strict=True)
+    if pretrained:
+        gen.load_state_dict(ckpt)
+    else:
+        gen.load_state_dict(ckpt["G_BA"])
     gen.to(device)
     gen.eval()
     return gen
@@ -50,7 +53,7 @@ if __name__ == "__main__":
 
     for style_name, gen_path in gen_models_paths.items():
         print(f"Processing style: {style_name}")
-        generator = load_pretrained_generator(gen_path, device)
+        generator = load_generator(gen_path, device, pretrained=False)
 
         test_images_dir = test_path[style_name]
         for img_name in os.listdir(test_images_dir):

@@ -1,5 +1,4 @@
 from typing import TypedDict
-
 from dataset_loader import ImageDataset, get_loader_from_dataset
 from models.discriminator import Discriminator
 from models.generator import Generator
@@ -10,8 +9,6 @@ import config
 import os
 from tqdm import tqdm
 from datetime import datetime
-from PIL import Image
-from models.generator_wrapper import get_models
 from torchvision.utils import make_grid, save_image
 
 class ReplayBuffer:
@@ -129,11 +126,10 @@ def set_requires_grad(nets: list[nn.Module], requires_grad: bool):
 
 
 def setup() -> SetupVars:
-    models = get_models(config.IMPLEMENTATION)
-    G_AB = models[0] # G_AB = A -> B
-    G_BA = models[1] # G_BA = B -> A
-    D_A = models[2]  # D_A = critique A
-    D_B = models[3]  # D_B = critique B
+    G_AB = Generator().to(config.DEVICE) # G_AB = A -> B
+    G_BA = Generator().to(config.DEVICE) # G_BA = B -> A
+    D_A = Discriminator().to(config.DEVICE)  # D_A = critique A
+    D_B = Discriminator().to(config.DEVICE)  # D_B = critique B
 
     G_AB.to(config.DEVICE)
     G_BA.to(config.DEVICE)
@@ -239,7 +235,7 @@ def train_epoch(svars: SetupVars, epoch_index):
     loader = svars["loader"]
     
     for batch in tqdm(loader, desc=f"Epoch {epoch_index+1}/{config.NUM_EPOCHS}"):
-        real_A = batch["A"].to(config.DEVICE) # Vangogh
+        real_A = batch["A"].to(config.DEVICE) # Vangogh (peintre)
         real_B = batch["B"].to(config.DEVICE) # Photos
 
         ##### Generators -----

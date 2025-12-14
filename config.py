@@ -1,4 +1,3 @@
-from enum import Enum
 import torch
 import torchvision.transforms as transforms
 
@@ -6,18 +5,18 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 TRAIN_DIR = "data/vangogh2photo/vangogh2photo/"
 RUNS_DIR = "runs"
 
-RESUME_TRAIN = True
-CHECKPOINT_DIR = "runs/2025-12-09_07-25-33/checkpoints" # TODO: Replace id
-RESUME_EPOCH = 48
+RESUME_TRAIN = False
+CHECKPOINT_DIR = "runs/<replace-with-id>/checkpoints"
+RESUME_EPOCH = 0
 
 SEED = 42
 REPLAY_BUFFER_SIZE = 50
 NUM_EPOCHS = 100
-DECAY_START = NUM_EPOCHS + 1  # NEW: No delay since only doing 100 epochs and not 200 OLD: epoch to start linear LR decay (paper starts at half of NUM_EPOCHS; first 100 same next 100 decay)
+DECAY_START = NUM_EPOCHS + 1 # No decay since only doing 100 epochs and not 200
 BATCH_SIZE = 1
 LEARNING_RATE = 2e-4
 USE_IDENTITY = True
-LAMBDA_IDENTITY = 0.5           # paper suggests 0.5 * lambda_cycle when lambda_cycle = 10 => 5 (TODO: confirm convention)
+LAMBDA_IDENTITY = 0.5
 LAMBDA_CYCLE = 10
 NUM_WORKERS = 4
 LOAD_MODEL = False

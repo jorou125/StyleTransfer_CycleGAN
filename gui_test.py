@@ -24,10 +24,13 @@ def test_generator_on_image(image_path, generator, device, iter=1):
             input_image = output_image
     return output_image.cpu().squeeze(0)
 
-def load_pretrained_generator(checkpoint_path, device):
-    checkpoint = torch.load(checkpoint_path, map_location=device)
+def load_generator(ckpt_file_path, device, pretrained=True):
+    ckpt = torch.load(ckpt_file_path, map_location=device)
     gen = Generator(input_nc=3, output_nc=3, ngf=64, norm_layer=functools.partial(nn.InstanceNorm2d, affine=False, track_running_stats=True), n_blocks=9)
-    gen.load_state_dict(checkpoint, strict=True)
+    if pretrained:
+        gen.load_state_dict(ckpt)
+    else:
+        gen.load_state_dict(ckpt["G_BA"])
     gen.to(device)
     gen.eval()
     return gen
@@ -48,7 +51,7 @@ if __name__ == "__main__":
     }
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    generators = {name: load_pretrained_generator(path, device) for name, path in CHECKPOINTS.items()}
+    generators = {name: load_generator(path, device) for name, path in CHECKPOINTS.items()}
 
     image_dir = None
     images = []
